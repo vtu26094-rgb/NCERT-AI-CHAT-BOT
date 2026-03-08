@@ -32,7 +32,6 @@ async function startServer() {
     // Serve frontend if needed
     serveStatic(app);
 
-    // Railway requires this port
     const PORT = process.env.PORT || 3000;
 
     httpServer.listen(PORT, "0.0.0.0", () => {
