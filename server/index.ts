@@ -1,28 +1,17 @@
 import 'dotenv/config';
-import express, { type Request, Response, NextFunction } from "express";
+import express from "express";
+import { createServer } from "http";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
-import { createServer } from "http";
 
 const app = express();
 const httpServer = createServer(app);
 
-declare module "http" {
-  interface IncomingMessage {
-    rawBody: unknown;
-  }
-}
-
-app.use(
-  express.json({
-    verify: (req, _res, buf) => {
-      (req as any).rawBody = buf;
-    },
-  })
-);
-
+// Middleware
+app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Log helper
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
     hour: "numeric",
@@ -34,12 +23,26 @@ export function log(message: string, source = "express") {
   console.log(`${formattedTime} [${source}] ${message}`);
 }
 
-// Register routes
-registerRoutes(app);
+// Start server
+async function startServer() {
+  try {
+    // Register API routes
+    await registerRoutes(app);
 
-// Start server (Railway requires PORT)
-const PORT = process.env.PORT || 3000;
+    // Serve frontend if needed
+    serveStatic(app);
 
-httpServer.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
-});
+    // Railway requires this port
+    const PORT = process.env.PORT || 3000;
+
+    httpServer.listen(PORT, "0.0.0.0", () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+
+  } catch (error) {
+    console.error("❌ Server failed to start:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
